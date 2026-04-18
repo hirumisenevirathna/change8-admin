@@ -25,23 +25,55 @@ adminAuth.authenticate = async (email, password) => {
 
 const adminJs = new AdminJS({
   resources: [
-    {
-      resource: User,
-      options: {
-        navigation: { show: false },
-        actions: {
-          list:       { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
-          show:       { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
-          edit:       { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
-          new:        { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
-          delete:     { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
-          bulkDelete: { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
+{
+  resource: User,
+  options: {
+    navigation: { show: false },
+    actions: {
+      list:       { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
+      show:       { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
+      delete:     { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
+      bulkDelete: { isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin' },
+      new: {
+        isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin',
+        before: async (request) => {
+          console.log('NEW BEFORE METHOD:', request.method);
+          console.log('NEW BEFORE PAYLOAD:', JSON.stringify(request.payload));
+          if (request.method === 'post') {
+            const pwd = request.payload?.password;
+            if (pwd) {
+              request.payload.password = await bcrypt.hash(pwd, 10);
+            }
+          }
+          return request;
         },
-        properties: {
-          password: { isVisible: { list: false, edit: false, filter: false, show: false } },
+      },
+      edit: {
+        isAccessible: ({ currentAdmin }) => currentAdmin?.role === 'admin',
+        before: async (request) => {
+          if (request.method === 'post') {
+            const pwd = request.payload?.password;
+            if (pwd) {
+              request.payload.password = await bcrypt.hash(pwd, 10);
+            }
+          }
+          return request;
         },
       },
     },
+    properties: {
+      password: {
+        isVisible: {
+          list: false,
+          filter: false,
+          show: false,
+          edit: true,
+          new: true,
+        },
+      },
+    },
+  },
+},
     { resource: Category, options: { isAccessible: () => true } },
     {
       resource: Product,
